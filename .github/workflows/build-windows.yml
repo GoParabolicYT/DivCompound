@@ -1,0 +1,23 @@
+name: Build Windows
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack app
+        run: Expand-Archive -Path app.zip -DestinationPath . -Force
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-desktop.txt
+      - run: pyinstaller --noconfirm --clean DivCompound.spec
+      - run: Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkId=2124703 -OutFile installer\MicrosoftEdgeWebview2Setup.exe
+      - run: choco install innosetup -y --no-progress
+      - run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\DivCompound.iss'
+      - uses: actions/upload-artifact@v4
+        with: { name: DivCompound-Setup, path: installer/Output/*.exe }
+      - uses: actions/upload-artifact@v4
+        with: { name: DivCompound-portable, path: dist/DivCompound }
